@@ -16,6 +16,7 @@ use crate::api::{
     OutputConfig, Role, StopReason, SystemBlock, ToolChoice,
 };
 use crate::bridge::PhoneBridge;
+use crate::budget::{Budget, LimitHit};
 use crate::client::{ApiClient, ApiError};
 use crate::i18n::{Msg, t};
 use crate::prompts::ROUTER_SYSTEM;
@@ -52,6 +53,10 @@ pub struct CommandCtx<'a> {
     pub locale: String,
     /// Usage accumulator.
     pub usage: &'a SessionUsage,
+    /// Local spending ledger.
+    pub budget: &'a Budget,
+    /// UTC date of this command (`YYYY-MM-DD`).
+    pub today: String,
 }
 
 /// Whether server-side refusal fallback may be requested for `model`.
@@ -135,12 +140,29 @@ pub fn run(ctx: &CommandCtx<'_>, client: &ApiClient, command: &str) -> Outcome {
     let tool_ctx = ToolCtx::new(ctx.settings, ctx.bridge);
 
     for turn in 0..MAX_ROUTER_TURNS {
+        if let Err(hit) = ctx.budget.check(
+            &ctx.today,
+            ctx.settings.daily_limit_usd_micros,
+            ctx.settings.monthly_limit_usd_micros,
+        ) {
+            let msg = match hit {
+                LimitHit::Daily => Msg::DailyLimit,
+                LimitHit::Monthly => Msg::MonthlyLimit,
+            };
+            return failed(ctx, FailureKind::SpendingLimit, msg);
+        }
         let body = router_request_body(ctx.settings, ctx.tool_defs, &messages);
         let resp = match client.messages(&body, betas, &stop) {
             Ok(r) => r,
             Err(e) => return api_failure(ctx, &e),
         };
         ctx.usage.record(&resp.usage);
+        let billed_model = if resp.model.is_empty() {
+            model
+        } else {
+            resp.model.as_str()
+        };
+        ctx.budget.record(&ctx.today, billed_model, &resp.usage);
         tracing::debug!(turn, stop_reason = ?resp.stop_reason, model = %resp.model, "router response");
 
         match resp.stop_reason {

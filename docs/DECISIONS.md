@@ -161,3 +161,13 @@ apps, and none should be used.
 `dial` always asks for confirmation; Kotlin then uses `ACTION_CALL` when the
 user granted `CALL_PHONE`, otherwise `ACTION_DIAL` (the dialer then needs one
 more tap).
+
+## D-32 Local spending limit (default $2/day, $20/month)
+Direct mode has no relay caps, so the agent keeps its own ledger
+(`usage.json`, estimated cost from the shared price table in
+`protocol::pricing`) and refuses new requests once the daily or monthly limit
+is reached (spoken message, `FailureKind::SpendingLimit`). It also applies in
+relay mode, on top of the relay's caps. It is soft (the crossing request
+completes) and an estimate; the Anthropic Console spend limit is the hard
+backstop. The price table and UTC date helpers moved to `protocol` so the relay
+and the phone compute costs identically.

@@ -12,6 +12,8 @@
 #![forbid(unsafe_code)]
 
 pub mod pairing;
+pub mod pricing;
+pub mod time;
 
 use serde::{Deserialize, Serialize};
 

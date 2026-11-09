@@ -371,6 +371,8 @@ pub enum FailureKind {
     Blocked,
     /// Feature not available yet.
     Unsupported,
+    /// The local daily or monthly spending limit was reached.
+    SpendingLimit,
     /// Anything else (bug, unexpected response).
     Internal,
 }

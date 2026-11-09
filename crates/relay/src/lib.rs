@@ -25,7 +25,7 @@
 pub mod auth;
 pub mod config;
 pub mod inspect;
-pub mod time;
+pub use pocket_agent_protocol::time;
 pub mod usage;
 
 #[cfg(target_arch = "wasm32")]

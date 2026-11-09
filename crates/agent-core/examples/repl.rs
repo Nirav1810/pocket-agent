@@ -24,6 +24,7 @@ use std::io::{self, BufRead, Write};
 use std::sync::Arc;
 
 use pocket_agent_core::agent::pair_relay;
+use pocket_agent_core::pricing_fmt;
 use pocket_agent_core::{
     ActionResult, Agent, AppInfo, Credentials, IntentSpec, PhoneBridge, ScreenSnapshot, UiAction,
 };
@@ -199,6 +200,7 @@ fn main() {
             std::process::exit(1);
         }
     };
+    apply_limits(&agent);
     println!("Type a command (or /usage, /settings, /quit).");
     let stdin = io::stdin();
     loop {
@@ -212,7 +214,10 @@ fn main() {
         match line {
             "" => continue,
             "/quit" | "/exit" => break,
-            "/usage" => println!("{:?}", agent.session_usage()),
+            "/usage" => {
+                println!("  {:?}", agent.session_usage());
+                print_budget(&agent);
+            }
             "/settings" => println!("{}", agent.export_settings_json()),
             cmd => {
                 let started = std::time::Instant::now();
@@ -231,4 +236,49 @@ fn main() {
             }
         }
     }
+}
+
+/// Apply `POCKET_AGENT_DAILY_LIMIT_USD` / `POCKET_AGENT_MONTHLY_LIMIT_USD`
+/// (from the environment or `.env`) to the agent's settings.
+fn apply_limits(agent: &Agent) {
+    let mut s = agent.settings();
+    for (var, field) in [
+        (
+            "POCKET_AGENT_DAILY_LIMIT_USD",
+            &mut s.daily_limit_usd_micros,
+        ),
+        (
+            "POCKET_AGENT_MONTHLY_LIMIT_USD",
+            &mut s.monthly_limit_usd_micros,
+        ),
+    ] {
+        if let Some(v) = env(var) {
+            match pricing_fmt::usd_to_micros(&v) {
+                Some(m) => *field = m,
+                None => eprintln!("ignoring {var}: expected a dollar amount like 1 or 0.50"),
+            }
+        }
+    }
+    if let Err(e) = agent.update_settings(s) {
+        eprintln!("could not save limits: {e}");
+    }
+    print_budget(agent);
+}
+
+fn print_budget(agent: &Agent) {
+    let b = agent.budget_status();
+    let limit = |m: u64| {
+        if m == 0 {
+            "no limit".to_owned()
+        } else {
+            pricing_fmt::format_usd(m)
+        }
+    };
+    println!(
+        "Spend (estimated): today {} of {}, this month {} of {}",
+        pricing_fmt::format_usd(b.today_usd_micros),
+        limit(b.daily_limit_usd_micros),
+        pricing_fmt::format_usd(b.month_usd_micros),
+        limit(b.monthly_limit_usd_micros),
+    );
 }

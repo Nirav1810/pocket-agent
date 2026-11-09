@@ -23,6 +23,9 @@ Either way you pay only for your own Claude API usage.
 
 In the app: *Connection → Direct → paste key → Test connection*. Done.
 
+The agent also enforces its own daily and monthly spending limits (default
+$2 / $20, Settings → Limits), on top of the Console limit you set in step 0.
+
 The key is encrypted with an AES-256-GCM key held in the Android Keystore
 (StrongBox when your phone has it) and is only sent to `api.anthropic.com`.
 

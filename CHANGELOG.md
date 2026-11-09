@@ -22,6 +22,8 @@ Conventional Commits.
   keywords, atomic versioned settings store, spoken messages in en/hi/es, UniFFI
   bindings surface (`Agent`, `PhoneBridge`), desktop REPL.
 - Relay marks its own errors with `x-pocket-relay-error`.
+- Local daily/monthly spending limit enforced by agent-core (default $2/$20),
+  shown in the REPL `/usage`; REPL reads keys and limits from a git-ignored `.env`.
 - Shared `protocol` crate (relay API types, pairing QR payload).
 - CI: fmt, clippy (native + wasm32), tests, cargo-deny, relay integration test
   under `wrangler dev`, gitleaks.

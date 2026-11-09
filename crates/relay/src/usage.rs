@@ -7,14 +7,15 @@ use crate::inspect::Usage;
 
 /// Estimated cost of one response in micro-USD, rounded up per component.
 pub fn cost_micros(u: &Usage, p: &ModelPrice) -> u64 {
-    let part = |tokens: u64, per_mtok: u64| -> u64 {
-        let micros = (u128::from(tokens) * u128::from(per_mtok)).div_ceil(1_000_000);
-        u64::try_from(micros).unwrap_or(u64::MAX)
-    };
-    part(u.input_tokens, p.input)
-        .saturating_add(part(u.output_tokens, p.output))
-        .saturating_add(part(u.cache_read_input_tokens, p.cache_read))
-        .saturating_add(part(u.cache_creation_input_tokens, p.cache_write))
+    pocket_agent_protocol::pricing::cost_micros(
+        &pocket_agent_protocol::pricing::Tokens {
+            input: u.input_tokens,
+            output: u.output_tokens,
+            cache_read: u.cache_read_input_tokens,
+            cache_write: u.cache_creation_input_tokens,
+        },
+        p,
+    )
 }
 
 /// One row of the `usage` table (per day, device and model).

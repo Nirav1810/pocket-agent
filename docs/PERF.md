@@ -57,3 +57,24 @@ or Cloudflare dashboard → Workers → your relay → Metrics → *CPU time*
   Live `cache_read_input_tokens` numbers are pending a live REPL run.
 - `relay-it` re-run on 2026-11-09 under heavier machine load: median 63.6 ms
   (vs 21.7 ms earlier). Local wall time is noisy; it is not a CPU figure.
+
+### Live router check (direct mode, 2026-11-09)
+
+`examples/repl.rs` against `api.anthropic.com`, Claude Haiku 5.5, effort low,
+from a Windows desktop in India (wall time per command, includes TLS + network):
+
+| Command | Wall time | Input | Output | Cache read | Cache write |
+|---|---|---|---|---|---|
+| Wake me up at 6:30 (first) | 11.0 s | 107 | 125 | 0 | 3,234 |
+| Play Arijit Singh on YouTube Music | 2.55 s | 113 | 115 | 3,234 | 0 |
+| Message Rahul on WhatsApp… (declined at confirm) | 3.00 s | 115 | 136 | 3,234 | 0 |
+| Set a timer for 10 minutes | 1.86 s | 109 | 101 | 3,234 | 0 |
+
+- Prompt caching works: after the first command the whole 3,234-token prefix
+  (tools + system) is read from cache; only ~110 tokens per command are uncached.
+- Estimated cost: **$0.00079 for all four** (≈ $0.0002 per intent command).
+- The first request is slow (cache write plus first-use compilation of the
+  strict tool schemas). Warm commands take 1.9–3.0 s, so router latency alone is
+  at or above the 2 s speech-to-action budget. Revisit in Milestone 7: keep a
+  warm TLS connection while listening, measure on-phone networks, and compare
+  thinking-off behaviour at low effort.

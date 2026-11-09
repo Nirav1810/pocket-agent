@@ -76,6 +76,10 @@ pub struct Settings {
     pub action_cap: u32,
     /// Things the user asked the agent to remember ("my wife is Priya").
     pub memory: Vec<String>,
+    /// Local spending limit per UTC day, micro-USD (0 = none). See `budget`.
+    pub daily_limit_usd_micros: u64,
+    /// Local spending limit per UTC month, micro-USD (0 = none).
+    pub monthly_limit_usd_micros: u64,
 }
 
 /// Region-neutral defaults: password managers and authenticators. Payment
@@ -107,6 +111,8 @@ impl Default for Settings {
             confirm_everything: false,
             action_cap: 25,
             memory: Vec::new(),
+            daily_limit_usd_micros: 2_000_000,
+            monthly_limit_usd_micros: 20_000_000,
         }
     }
 }

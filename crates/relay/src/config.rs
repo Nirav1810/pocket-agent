@@ -4,10 +4,9 @@
 //! table. Secrets (`ANTHROPIC_API_KEY`, `PAIRING_CODE`) are *not* read here;
 //! they are fetched only by the handlers that need them.
 
-use std::collections::BTreeMap;
-
 use pocket_agent_protocol::Caps;
-use serde::Deserialize;
+use pocket_agent_protocol::pricing::PriceTable;
+pub use pocket_agent_protocol::pricing::{ModelPrice, usd_to_micros};
 use thiserror::Error;
 
 /// Default upstream. The only non-loopback upstream the relay will talk to.
@@ -21,13 +20,6 @@ const DEFAULT_MAX_TOKENS_CAP: u64 = 16_000;
 const DEFAULT_PAIRING_MAX_FAILURES: u32 = 10;
 const DEFAULT_MAX_BODY_BYTES: usize = 2 * 1024 * 1024;
 
-/// Default prices, USD per 1M tokens.
-const DEFAULT_PRICES: &str = r#"{
-  "claude-haiku-5-5":  {"input": 0.10, "output": 0.50, "cache_read": 0.01, "cache_write": 0.125},
-  "claude-sonnet-5-5": {"input": 2.00, "output": 10.00, "cache_read": 0.20, "cache_write": 2.50},
-  "claude-opus-5-5":   {"input": 4.00, "output": 20.00, "cache_read": 0.20, "cache_write": 5.00}
-}"#;
-
 /// A configuration value was present but invalid.
 #[derive(Debug, Error, PartialEq, Eq)]
 #[error("invalid relay configuration `{name}`: {reason}")]
@@ -36,19 +28,6 @@ pub struct ConfigError {
     pub name: &'static str,
     /// What was wrong (never echoes the value).
     pub reason: &'static str,
-}
-
-/// Price of one model in micro-USD per 1M tokens.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ModelPrice {
-    /// Uncached input.
-    pub input: u64,
-    /// Output (including thinking).
-    pub output: u64,
-    /// Cache reads.
-    pub cache_read: u64,
-    /// Cache writes.
-    pub cache_write: u64,
 }
 
 /// Parsed relay configuration.
@@ -63,7 +42,7 @@ pub struct Config {
     /// Soft spending caps.
     pub caps: Caps,
     /// Price table keyed by model id.
-    pub prices: BTreeMap<String, ModelPrice>,
+    pub prices: PriceTable,
     /// Failed pairing attempts before pairing locks.
     pub pairing_max_failures: u32,
     /// Maximum accepted request body.
@@ -108,7 +87,13 @@ impl Config {
             monthly_usd_micros: usd_var(var("MONTHLY_USD_CAP"), "MONTHLY_USD_CAP")?,
         };
 
-        let prices = parse_prices(&var("PRICES").unwrap_or_else(|| DEFAULT_PRICES.into()))?;
+        let prices = match var("PRICES") {
+            None => PriceTable::default(),
+            Some(json) => PriceTable::parse(&json).map_err(|_| ConfigError {
+                name: "PRICES",
+                reason: "must be a JSON object {model: {input, output, cache_read?, cache_write?}} in USD per 1M tokens",
+            })?,
+        };
 
         let pairing_max_failures = match var("PAIRING_MAX_FAILURES") {
             None => DEFAULT_PAIRING_MAX_FAILURES,
@@ -151,19 +136,9 @@ impl Config {
         })
     }
 
-    /// Price for `model`. Unknown models are charged at the most expensive
-    /// configured rate, so caps fail safe rather than under-count.
+    /// Price for `model` (unknown models at the most expensive rate).
     pub fn price_for(&self, model: &str) -> ModelPrice {
-        if let Some(p) = self.prices.get(model) {
-            return *p;
-        }
-        let max = |f: fn(&ModelPrice) -> u64| self.prices.values().map(f).max().unwrap_or(0);
-        ModelPrice {
-            input: max(|p| p.input),
-            output: max(|p| p.output),
-            cache_read: max(|p| p.cache_read),
-            cache_write: max(|p| p.cache_write),
-        }
+        self.prices.price_for(model)
     }
 
     /// Whether `model` may be forwarded.
@@ -211,90 +186,10 @@ fn usd_var(v: Option<String>, name: &'static str) -> Result<u64, ConfigError> {
     }
 }
 
-/// Parse "12.345678" into micros without floating point.
-pub fn usd_to_micros(s: &str) -> Option<u64> {
-    let (whole, frac) = s.split_once('.').unwrap_or((s, ""));
-    if whole.is_empty() && frac.is_empty() {
-        return None;
-    }
-    if frac.len() > 6
-        || !whole
-            .bytes()
-            .chain(frac.bytes())
-            .all(|b| b.is_ascii_digit())
-    {
-        return None;
-    }
-    let whole: u64 = if whole.is_empty() {
-        0
-    } else {
-        whole.parse().ok()?
-    };
-    let mut frac_micros: u64 = if frac.is_empty() {
-        0
-    } else {
-        frac.parse().ok()?
-    };
-    for _ in frac.len()..6 {
-        frac_micros *= 10;
-    }
-    whole.checked_mul(1_000_000)?.checked_add(frac_micros)
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct PriceWire {
-    input: f64,
-    output: f64,
-    #[serde(default)]
-    cache_read: Option<f64>,
-    #[serde(default)]
-    cache_write: Option<f64>,
-}
-
-fn parse_prices(json: &str) -> Result<BTreeMap<String, ModelPrice>, ConfigError> {
-    const ERR: ConfigError = ConfigError {
-        name: "PRICES",
-        reason: "must be a JSON object {model: {input, output, cache_read?, cache_write?}} in USD per 1M tokens",
-    };
-    let wire: BTreeMap<String, PriceWire> = serde_json::from_str(json).map_err(|_| ERR)?;
-    let to_micros = |usd: f64| -> Result<u64, ConfigError> {
-        if usd.is_finite() && (0.0..=1_000_000.0).contains(&usd) {
-            // Bounded and non-negative, so the cast cannot wrap.
-            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-            Ok((usd * 1_000_000.0).round() as u64)
-        } else {
-            Err(ERR)
-        }
-    };
-    wire.into_iter()
-        .map(|(model, p)| {
-            let input = to_micros(p.input)?;
-            Ok((
-                model,
-                ModelPrice {
-                    input,
-                    output: to_micros(p.output)?,
-                    // Anthropic's usual ratios when not given explicitly.
-                    cache_read: p
-                        .cache_read
-                        .map(to_micros)
-                        .transpose()?
-                        .unwrap_or(input / 10),
-                    cache_write: p
-                        .cache_write
-                        .map(to_micros)
-                        .transpose()?
-                        .unwrap_or(input * 5 / 4),
-                },
-            ))
-        })
-        .collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
 
     fn cfg(pairs: &[(&str, &str)]) -> Result<Config, ConfigError> {
         let map: BTreeMap<String, String> = pairs

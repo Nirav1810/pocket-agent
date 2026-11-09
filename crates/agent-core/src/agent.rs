@@ -8,6 +8,7 @@ use pocket_agent_protocol::{PROTOCOL_VERSION, PairingPayload};
 use serde_json::Value;
 
 use crate::bridge::PhoneBridge;
+use crate::budget::{self, Budget, BudgetStatus};
 use crate::client::{self, ApiClient, ApiError};
 use crate::i18n::{Msg, t};
 use crate::router::{self, CommandCtx};
@@ -71,6 +72,7 @@ pub struct Agent {
     tools: Vec<Box<dyn Tool>>,
     tool_defs: Vec<Value>,
     usage: SessionUsage,
+    budget: Budget,
 }
 
 #[uniffi::export]
@@ -78,8 +80,9 @@ impl Agent {
     /// Create the agent. `data_dir` is app-private storage for `settings.json`.
     #[uniffi::constructor]
     pub fn new(bridge: Arc<dyn PhoneBridge>, data_dir: String) -> Result<Arc<Self>, AgentError> {
-        let store = Store::open(&PathBuf::from(data_dir))
-            .map_err(|e| AgentError::Storage(e.to_string()))?;
+        let dir = PathBuf::from(data_dir);
+        let budget = Budget::open(&dir);
+        let store = Store::open(&dir).map_err(|e| AgentError::Storage(e.to_string()))?;
         let tools = tools::router_tools();
         let tool_defs = tools::definitions(&tools);
         Ok(Arc::new(Self {
@@ -89,6 +92,7 @@ impl Agent {
             tools,
             tool_defs,
             usage: SessionUsage::default(),
+            budget,
         }))
     }
 
@@ -124,6 +128,8 @@ impl Agent {
             tool_defs: &self.tool_defs,
             locale,
             usage: &self.usage,
+            budget: &self.budget,
+            today: budget::today(),
         };
         router::run(&ctx, &client, &text)
     }
@@ -157,6 +163,16 @@ impl Agent {
         let s: Settings =
             serde_json::from_str(&json).map_err(|e| AgentError::InvalidInput(e.to_string()))?;
         self.update_settings(s)
+    }
+
+    /// Estimated local spend and limits (usage screen).
+    pub fn budget_status(&self) -> BudgetStatus {
+        let s = self.settings();
+        self.budget.status(
+            &budget::today(),
+            s.daily_limit_usd_micros,
+            s.monthly_limit_usd_micros,
+        )
     }
 
     /// Token usage since the agent was created.

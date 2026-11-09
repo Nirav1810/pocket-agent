@@ -25,6 +25,7 @@ uniffi::setup_scaffolding!();
 pub mod agent;
 pub mod api;
 pub mod bridge;
+pub mod budget;
 pub mod client;
 pub mod i18n;
 pub mod prompts;
@@ -37,4 +38,6 @@ pub mod usage;
 
 pub use agent::{Agent, AgentError};
 pub use bridge::PhoneBridge;
+/// USD parsing/formatting helpers (re-exported for the REPL and tools).
+pub use pocket_agent_protocol::pricing as pricing_fmt;
 pub use types::*;

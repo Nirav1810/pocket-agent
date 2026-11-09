@@ -31,6 +31,10 @@ pub enum Msg {
     RelayCap,
     /// Relay model allowlist.
     ModelNotAllowed,
+    /// Local daily spending limit.
+    DailyLimit,
+    /// Local monthly spending limit.
+    MonthlyLimit,
     /// Claude declined.
     Refused,
     /// Unexpected failure.
@@ -106,6 +110,8 @@ fn english(msg: Msg) -> &'static str {
         KeyRejectedRelay => "Your relay's API key was rejected. Update it on the relay.",
         RelayCap => "Your relay's spending limit has been reached.",
         ModelNotAllowed => "Your relay doesn't allow the selected model.",
+        DailyLimit => "You've reached today's spending limit. You can raise it in settings.",
+        MonthlyLimit => "You've reached this month's spending limit. You can raise it in settings.",
         Refused => "Sorry, I can't help with that.",
         Generic => "Sorry, something went wrong.",
         Cancelled => "Okay, cancelled.",
@@ -139,6 +145,8 @@ fn hindi(msg: Msg) -> Option<&'static str> {
         KeyRejectedRelay => "आपके रिले की API कुंजी अस्वीकार हो गई। रिले पर इसे अपडेट करें।",
         RelayCap => "आपके रिले की खर्च सीमा पूरी हो गई है।",
         ModelNotAllowed => "आपका रिले चुने गए मॉडल की अनुमति नहीं देता।",
+        DailyLimit => "आज की खर्च सीमा पूरी हो गई है। आप इसे सेटिंग्स में बढ़ा सकते हैं।",
+        MonthlyLimit => "इस महीने की खर्च सीमा पूरी हो गई है। आप इसे सेटिंग्स में बढ़ा सकते हैं।",
         Refused => "माफ़ कीजिए, मैं इसमें मदद नहीं कर सकता।",
         Generic => "माफ़ कीजिए, कुछ गड़बड़ हो गई।",
         Cancelled => "ठीक है, रद्द कर दिया।",
@@ -172,6 +180,8 @@ fn spanish(msg: Msg) -> Option<&'static str> {
         KeyRejectedRelay => "La clave de API de tu relay fue rechazada. Actualízala en el relay.",
         RelayCap => "Se alcanzó el límite de gasto de tu relay.",
         ModelNotAllowed => "Tu relay no permite el modelo seleccionado.",
+        DailyLimit => "Llegaste al límite de gasto de hoy. Puedes subirlo en ajustes.",
+        MonthlyLimit => "Llegaste al límite de gasto de este mes. Puedes subirlo en ajustes.",
         Refused => "Lo siento, no puedo ayudar con eso.",
         Generic => "Lo siento, algo salió mal.",
         Cancelled => "Vale, cancelado.",

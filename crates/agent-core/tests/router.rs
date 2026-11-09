@@ -359,3 +359,36 @@ async fn usage_is_accumulated() {
     .unwrap();
     assert_eq!((u.requests, u.cache_read_input_tokens), (1, 2214));
 }
+
+#[tokio::test]
+async fn local_spending_limit_blocks_further_requests() {
+    let server = server_with(&["router_set_alarm", "router_set_alarm"]).await;
+    let bridge = FakeBridge::new(&server.uri());
+    let (first, second, status) = tokio::task::spawn_blocking(move || {
+        let (a, _dir) = agent(bridge);
+        let mut s = a.settings();
+        s.daily_limit_usd_micros = 1; // one micro-dollar: the first request crosses it
+        a.update_settings(s).unwrap();
+        (
+            a.handle_command("alarm".into()),
+            a.handle_command("alarm".into()),
+            a.budget_status(),
+        )
+    })
+    .await
+    .unwrap();
+    assert!(matches!(first, Outcome::Done { .. }));
+    assert_eq!(
+        second,
+        Outcome::Failed {
+            kind: FailureKind::SpendingLimit,
+            spoken: "You've reached today's spending limit. You can raise it in settings.".into()
+        }
+    );
+    assert_eq!(
+        server.received_requests().await.unwrap().len(),
+        1,
+        "no request after the limit"
+    );
+    assert!(status.today_usd_micros > 0);
+}
