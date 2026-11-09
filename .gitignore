@@ -28,6 +28,7 @@ android/app/src/main/java/uniffi/
 *.p12
 .env
 .env.*
+!.env.example
 
 # OS / editor
 .DS_Store

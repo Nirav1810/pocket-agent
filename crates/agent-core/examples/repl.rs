@@ -11,6 +11,9 @@
 //! ANTHROPIC_API_KEY=sk-ant-… cargo run -p pocket-agent-core --example repl
 //! ```
 //!
+//! Instead of exporting variables you can put them in the repo-root `.env`
+//! (copy `.env.example`; it is git-ignored). Real env vars win over `.env`.
+//!
 //! Optional: `POCKET_AGENT_MODE=relay|direct` (when both are configured),
 //! `POCKET_AGENT_LOCALE=hi-IN`, `POCKET_AGENT_AUTO_CONFIRM=1`.
 //! Commands: `/usage`, `/settings`, `/quit`. Intents are printed, not executed.
@@ -93,9 +96,43 @@ impl PhoneBridge for ConsoleBridge {
     }
 }
 
+/// Settings from the repo-root `.env` (git-ignored). Real environment
+/// variables take precedence over it.
+fn dotenv() -> &'static std::collections::HashMap<String, String> {
+    static DOTENV: std::sync::OnceLock<std::collections::HashMap<String, String>> =
+        std::sync::OnceLock::new();
+    DOTENV.get_or_init(|| {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.env");
+        std::fs::read_to_string(path)
+            .map(|s| parse_dotenv(&s))
+            .unwrap_or_default()
+    })
+}
+
+/// Minimal `.env` parser: `KEY=value` lines, `#` comments, optional
+/// `export ` prefix, optional matching single or double quotes.
+fn parse_dotenv(text: &str) -> std::collections::HashMap<String, String> {
+    text.lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .filter_map(|l| {
+            let l = l.strip_prefix("export ").unwrap_or(l);
+            let (k, v) = l.split_once('=')?;
+            let v = v.trim();
+            let v = v
+                .strip_prefix('"')
+                .and_then(|x| x.strip_suffix('"'))
+                .or_else(|| v.strip_prefix('\'').and_then(|x| x.strip_suffix('\'')))
+                .unwrap_or(v);
+            Some((k.trim().to_owned(), v.to_owned()))
+        })
+        .collect()
+}
+
 fn env(name: &str) -> Option<String> {
     std::env::var(name)
         .ok()
+        .or_else(|| dotenv().get(name).cloned())
         .map(|v| v.trim().to_owned())
         .filter(|v| !v.is_empty())
 }

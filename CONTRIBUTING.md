@@ -46,6 +46,9 @@ cargo xtask relay-it             # relay under `wrangler dev` vs a mock upstream
 
 `relay-it` needs Node.js but no Cloudflare account or API key.
 
+For the desktop REPL, put your keys in a repo-root `.env` (copy `.env.example`;
+`.env` is git-ignored) and run `cargo run -p pocket-agent-core --example repl`.
+
 ## Code standards
 
 - No `unwrap()`/`expect()`/`panic!` outside tests (enforced by clippy lints).
