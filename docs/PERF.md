@@ -46,3 +46,14 @@ npx wrangler tail --format json | grep -o '"cpuTime":[0-9]*'
 
 or Cloudflare dashboard → Workers → your relay → Metrics → *CPU time*
 (observability is enabled in the template). Record p50/p99 here.
+
+## agent-core (Milestone 2, 2026-11-09)
+
+- Release library (`cargo build --release -p pocket-agent-core`, x86-64
+  Windows, opt-level z, LTO, includes rustls+ring, ureq, UniFFI scaffolding):
+  **1.7 MB**. The arm64 Android `.so` is measured in Milestone 3.
+- Router request: tools + system prompt are byte-identical across commands
+  (tested), so after the first command only the user message is uncached.
+  Live `cache_read_input_tokens` numbers are pending a live REPL run.
+- `relay-it` re-run on 2026-11-09 under heavier machine load: median 63.6 ms
+  (vs 21.7 ms earlier). Local wall time is noisy; it is not a CPU figure.

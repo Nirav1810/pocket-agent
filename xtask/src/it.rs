@@ -542,6 +542,10 @@ fn checks(base: &str, seen: &SeenLog) -> Result<String> {
         r.status == 429 && r.header("retry-after") == Some("7"),
         "upstream 429 + retry-after passed through",
     )?;
+    expect(
+        r.header("x-pocket-relay-error").is_none(),
+        "forwarded upstream errors carry no relay-error header",
+    )?;
 
     // Usage is written in waitUntil; give it a moment.
     let mut usage: Option<UsageSummary> = None;
@@ -652,6 +656,10 @@ fn checks(base: &str, seen: &SeenLog) -> Result<String> {
         let r = call(base, "POST", "/v1/messages", Some(&token), Some(&body), &[])?;
         if r.status == 402 {
             hit = Some((i, r.error_type()));
+            expect(
+                r.header("x-pocket-relay-error") == Some("relay_cap_exceeded"),
+                "relay-generated errors carry x-pocket-relay-error",
+            )?;
             break;
         }
         successes += 1;

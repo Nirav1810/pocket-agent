@@ -1,0 +1,72 @@
+{
+  "_readme": "Safety data for Pocket Agent. A UI action whose target (text, content description or resource id, including child labels) contains one of these words/phrases as whole words requires explicit user confirmation. Add languages by ISO 639-1 code. Matching is case-insensitive and on whole words; multi-word entries match consecutive words. Keep entries short and specific. Over-confirming is acceptable; under-confirming is not. Run `cargo test -p pocket-agent-core safety` after editing.",
+  "version": 1,
+  "sensitive_words": {
+    "en": [
+      "send", "pay", "pay now", "place order", "order now", "buy", "buy now", "purchase", "checkout", "check out",
+      "proceed to pay", "delete", "remove", "erase", "transfer", "confirm", "uninstall", "subscribe", "book now",
+      "call", "post", "publish", "submit", "reset", "factory reset", "sign out", "log out", "logout",
+      "top up", "recharge", "donate", "approve", "authorize", "authorise",
+      "install", "update payment", "add money", "withdraw", "sell"
+    ],
+    "hi": [
+      "भेजें", "भेजो", "भेजना", "भुगतान", "भुगतान करें", "पे करें", "खरीदें", "खरीदो", "ऑर्डर करें", "ऑर्डर दें",
+      "हटाएं", "हटाएँ", "मिटाएं", "डिलीट", "ट्रांसफर", "पुष्टि", "पुष्टि करें", "अनइंस्टॉल", "कॉल", "सब्सक्राइब",
+      "बुक करें", "रिचार्ज", "पोस्ट करें"
+    ],
+    "es": [
+      "enviar", "pagar", "comprar", "realizar pedido", "hacer pedido", "eliminar", "borrar", "transferir",
+      "confirmar", "desinstalar", "suscribirse", "llamar", "publicar", "reservar", "recargar"
+    ],
+    "pt": [
+      "enviar", "pagar", "comprar", "fazer pedido", "finalizar pedido", "excluir", "apagar", "transferir",
+      "confirmar", "desinstalar", "assinar", "ligar", "publicar", "reservar", "recarregar"
+    ],
+    "fr": [
+      "envoyer", "payer", "acheter", "commander", "passer la commande", "supprimer", "effacer", "transférer",
+      "virement", "confirmer", "désinstaller", "abonner", "appeler", "publier", "réserver"
+    ],
+    "de": [
+      "senden", "absenden", "bezahlen", "zahlen", "kaufen", "jetzt kaufen", "bestellen", "zahlungspflichtig bestellen",
+      "löschen", "entfernen", "überweisen", "bestätigen", "deinstallieren", "abonnieren", "anrufen",
+      "veröffentlichen", "buchen"
+    ],
+    "id": [
+      "kirim", "bayar", "beli", "pesan", "pesan sekarang", "hapus", "transfer", "konfirmasi", "copot",
+      "berlangganan", "panggil", "telepon", "isi ulang"
+    ]
+  },
+  "payment_packages": [
+    "com.google.android.apps.walletnfcrel",
+    "com.google.android.apps.nbu.paisa.user",
+    "com.phonepe.app",
+    "net.one97.paytm",
+    "in.org.npci.upiapp",
+    "in.amazon.mShop.android.shopping",
+    "com.paypal.android.p2pmobile",
+    "com.venmo",
+    "com.squareup.cash",
+    "com.samsung.android.spay",
+    "com.revolut.revolut",
+    "com.transferwise.android",
+    "com.mercadopago.wallet",
+    "com.eg.android.AlipayGphone",
+    "com.coinbase.android",
+    "com.binance.dev"
+  ],
+  "payment_package_segments": ["bank", "banking", "wallet", "upi"],
+  "settings_packages": ["com.android.settings", "com.samsung.android.settings", "com.miui.securitycenter"],
+  "security_screen_words": {
+    "en": [
+      "security", "password", "screen lock", "fingerprint", "face unlock", "biometric", "device admin",
+      "device admin apps", "factory reset", "encryption", "accounts", "passkeys", "find my device", "developer options",
+      "install unknown apps", "accessibility"
+    ],
+    "hi": ["सुरक्षा", "पासवर्ड", "स्क्रीन लॉक", "फ़िंगरप्रिंट", "खाते"],
+    "es": ["seguridad", "contraseña", "bloqueo de pantalla", "huella", "cuentas"],
+    "pt": ["segurança", "senha", "bloqueio de tela", "impressão digital", "contas"],
+    "fr": ["sécurité", "mot de passe", "verrouillage de l'écran", "empreinte", "comptes"],
+    "de": ["sicherheit", "passwort", "displaysperre", "fingerabdruck", "konten"],
+    "id": ["keamanan", "kata sandi", "kunci layar", "sidik jari", "akun"]
+  }
+}

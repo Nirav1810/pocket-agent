@@ -71,5 +71,7 @@ implementing `Tool`, a Kotlin mapping in `IntentExecutor`, and tests.
 ## Translations
 
 User-facing strings live in `android/app/src/main/res/values/strings.xml`
-(Milestone 3). Add `values-<lang>/strings.xml`; safety keyword lists for new
-languages live in `crates/agent-core/safety/keywords.toml`.
+(Milestone 3). Add `values-<lang>/strings.xml`. Messages the agent speaks on its
+own (errors, confirmation prompts) live in `crates/agent-core/src/i18n.rs`;
+safety keyword lists for new
+languages live in `crates/agent-core/safety/keywords.json`.

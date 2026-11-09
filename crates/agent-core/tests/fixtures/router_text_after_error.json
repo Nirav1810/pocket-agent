@@ -1,0 +1,1 @@
+{"id":"msg_02Reply","type":"message","role":"assistant","model":"claude-haiku-5-5","content":[{"type":"text","text":"Zomato isn't installed on your phone."}],"stop_reason":"end_turn","stop_sequence":null,"stop_details":null,"usage":{"input_tokens":40,"output_tokens":14,"cache_creation_input_tokens":180,"cache_read_input_tokens":2214}}

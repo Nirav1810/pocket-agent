@@ -5,8 +5,8 @@ want, and it gets done: by firing the right Android intent when one exists, or
 by operating the screen itself when it doesn't. Powered by Claude, with **your
 own** API key.
 
-> **Status: early development (v0.1.0 in progress).** The relay is complete
-> (Milestone 1). The on-device agent and Android app are being built. See the
+> **Status: early development (v0.1.0 in progress).** The relay (Milestone 1)
+> and the on-device agent core (Milestone 2) are done; the Android app is next. See the
 > [roadmap](#roadmap).
 
 <!-- Demo GIF goes here once the app runs end to end. -->
@@ -106,7 +106,7 @@ wakelock or polling. Idle, only the accessibility service is bound, doing nothin
 ## Roadmap
 
 1. ✅ Repo and self-hosted relay (pairing, auth, passthrough, usage ledger, caps)
-2. ☐ agent-core: Claude client, tools, router, safety policy, desktop REPL
+2. ✅ agent-core: Claude client, tools, router, safety policy, desktop REPL
 3. ☐ Android shell: onboarding, intents, speech, Quick Settings tile
 4. ☐ Default assistant (power-button long-press)
 5. ☐ Screen agent (accessibility, confirmations, STOP)

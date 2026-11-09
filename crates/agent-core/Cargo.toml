@@ -1,0 +1,35 @@
+[package]
+name = "pocket-agent-core"
+description = "On-device brain of Pocket Agent: Claude client, tool registry, safety policy, local store."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+# cdylib → libpocket_agent_core.so for Android; lib for tests and the REPL.
+crate-type = ["cdylib", "lib"]
+name = "pocket_agent_core"
+
+[dependencies]
+pocket-agent-protocol.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, features = ["raw_value"] }
+thiserror.workspace = true
+uniffi = "0.32.2"
+ureq = { version = "3.5.1", default-features = false, features = ["rustls-no-provider", "platform-verifier"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+secrecy = "0.10.3"
+zeroize = "1.9.1"
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+getrandom = "0.4.3"
+
+[dev-dependencies]
+wiremock = "0.6.5"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tempfile = "3"
+
+[lints]
+workspace = true

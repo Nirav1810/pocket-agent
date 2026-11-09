@@ -147,10 +147,15 @@ fn json<T: Serialize>(status: u16, v: &T) -> HResult {
     )
 }
 
+/// Relay-generated errors carry `x-pocket-relay-error: <kind>` so the app can
+/// tell them from Anthropic errors forwarded unchanged (e.g. a 401 meaning
+/// "re-pair this phone" vs. "the relay's API key is invalid").
 fn error_response(e: &RelayError) -> worker::Result<Response> {
+    let headers = base_headers();
+    headers.set("x-pocket-relay-error", e.kind_str())?;
     Ok(Response::from_bytes(e.body())?
         .with_status(e.status())
-        .with_headers(base_headers()))
+        .with_headers(headers))
 }
 
 async fn read_body(req: &mut Request, limit: usize) -> Result<Vec<u8>, RelayError> {

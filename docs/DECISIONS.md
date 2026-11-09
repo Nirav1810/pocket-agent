@@ -115,3 +115,49 @@ limit remains the hard backstop and SETUP.md asks users to set it first.
 ## D-23 Prefs are relay-global
 `/v1/prefs` stores one object per relay (single-owner relay), so re-pairing or
 adding a phone keeps preferences.
+
+## D-24 Strict tool schemas: every property required, optionals nullable
+Strict tool use rejects unsupported keywords (`minimum`, `maxLength`, …), so
+schemas use `anyOf: [<type>, null]` for optional values and list every property
+in `required`; ranges and lengths are validated in Rust (`Tool::plan`). A test
+walks every schema and enforces this.
+
+## D-25 Spoken confirmations are written by the model (`say`)
+Every router tool has a `say` field: a short confirmation in the reply
+language. This gives localised replies for any language Claude speaks, with no
+extra request. Rust only generates text for errors and confirmation prompts
+(`i18n.rs`, English + Hindi + Spanish so far, English fallback).
+
+## D-26 Safety keywords in JSON, not TOML
+`crates/agent-core/safety/keywords.json` is embedded with `include_str!` and
+parsed with `serde_json`, which is already a dependency (a TOML parser would add
+code size). A test checks it parses and covers the shipped languages.
+
+## D-27 Relay marks its own errors with `x-pocket-relay-error`
+A 401 can mean "this phone's token was revoked" (relay) or "the relay's API key
+is invalid" (Anthropic, forwarded unchanged). The relay adds
+`x-pocket-relay-error: <type>` to errors it generates, so the app can tell
+the user the right fix.
+
+## D-28 TLS: rustls + ring + platform verifier
+`ureq` with `rustls-no-provider` + `platform-verifier`, `rustls` with the `ring`
+provider. Uses Android's trust store (and the OS store on desktop). On Android
+the verifier must be initialised from Kotlin with the app `Context`
+(`rustls-platform-verifier` Android component); wired up in Milestone 3.
+Redirects are disabled, so the client only contacts its configured host.
+
+## D-29 Router: up to 3 turns, one tool call each
+`disable_parallel_tool_use: true`. Tool validation errors and failed intent
+launches go back to Claude as `is_error` tool results, so it can pick another
+tool (often `screen_task`) or explain. Three turns bound cost and latency.
+
+## D-30 Messages: confirm, then compose, then press Send
+`send_message` confirms the exact text first, opens the app's compose screen
+pre-filled, then (Milestone 5) the screen agent presses Send. Until then the
+user taps Send. There is no Android intent that sends silently in third-party
+apps, and none should be used.
+
+## D-31 Calls are confirmed in-app
+`dial` always asks for confirmation; Kotlin then uses `ACTION_CALL` when the
+user granted `CALL_PHONE`, otherwise `ACTION_DIAL` (the dialer then needs one
+more tap).

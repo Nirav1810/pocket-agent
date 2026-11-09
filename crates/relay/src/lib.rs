@@ -125,6 +125,20 @@ impl RelayError {
         }
     }
 
+    /// snake_case error type, as in the body (`relay_cap_exceeded`, …).
+    pub fn kind_str(&self) -> &'static str {
+        match self.kind {
+            RelayErrorKind::InvalidRequestError => "invalid_request_error",
+            RelayErrorKind::AuthenticationError => "authentication_error",
+            RelayErrorKind::PairingLocked => "pairing_locked",
+            RelayErrorKind::ModelNotAllowed => "model_not_allowed",
+            RelayErrorKind::RelayCapExceeded => "relay_cap_exceeded",
+            RelayErrorKind::NotFoundError => "not_found_error",
+            RelayErrorKind::UpstreamUnavailable => "upstream_unavailable",
+            RelayErrorKind::RelayError => "relay_error",
+        }
+    }
+
     /// HTTP status code.
     pub fn status(&self) -> u16 {
         self.status_override.unwrap_or_else(|| self.kind.status())
@@ -173,5 +187,24 @@ mod tests {
         let v: serde_json::Value = serde_json::from_slice(&e.body()).unwrap();
         assert_eq!(v["error"]["type"], "model_not_allowed");
         assert_eq!(RelayError::method_not_allowed().status(), 405);
+    }
+
+    #[test]
+    fn kind_str_matches_body_type() {
+        use RelayErrorKind::*;
+        for k in [
+            InvalidRequestError,
+            AuthenticationError,
+            PairingLocked,
+            ModelNotAllowed,
+            RelayCapExceeded,
+            NotFoundError,
+            UpstreamUnavailable,
+            RelayError,
+        ] {
+            let e = super::RelayError::new(k, "m");
+            let v: serde_json::Value = serde_json::from_slice(&e.body()).unwrap();
+            assert_eq!(v["error"]["type"], e.kind_str());
+        }
     }
 }

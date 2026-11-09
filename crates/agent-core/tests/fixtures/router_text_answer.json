@@ -1,0 +1,1 @@
+{"id":"msg_01Ans","type":"message","role":"assistant","model":"claude-haiku-5-5","content":[{"type":"text","text":"It is about 384,400 kilometres away."}],"stop_reason":"end_turn","stop_sequence":null,"stop_details":null,"usage":{"input_tokens":52,"output_tokens":20,"cache_creation_input_tokens":0,"cache_read_input_tokens":2214}}

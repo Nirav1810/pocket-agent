@@ -15,6 +15,13 @@ Conventional Commits.
   listing and revocation, `/healthz` with protocol version.
 - `cargo xtask relay-setup | relay-deploy | relay-rotate-code | relay-check |
   pair-qr | relay-it`.
+- `agent-core`: Claude Messages API client (relay and direct mode, rustls with
+  the platform verifier, host allowlist, retries with `retry-after`, typed
+  errors), nine router tools with strict schemas, router turn with
+  append-only history and prompt caching, safety policy with multilingual
+  keywords, atomic versioned settings store, spoken messages in en/hi/es, UniFFI
+  bindings surface (`Agent`, `PhoneBridge`), desktop REPL.
+- Relay marks its own errors with `x-pocket-relay-error`.
 - Shared `protocol` crate (relay API types, pairing QR payload).
 - CI: fmt, clippy (native + wasm32), tests, cargo-deny, relay integration test
   under `wrangler dev`, gitleaks.

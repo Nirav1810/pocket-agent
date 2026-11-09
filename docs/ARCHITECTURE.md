@@ -181,15 +181,17 @@ All models and efforts are user-configurable.
 Each intent tool is one Rust module implementing:
 
 ```rust
-trait Tool {
+trait Tool: Send + Sync {
     fn name(&self) -> &'static str;
     fn description(&self) -> &'static str;
     fn input_schema(&self) -> serde_json::Value;          // strict JSON schema
-    fn plan(&self, input: &Value, ctx: &ToolCtx) -> Result<ToolPlan, ToolError>;
+    fn plan(&self, input: &Value, ctx: &ToolCtx<'_>) -> Result<ToolPlan, ToolError>;
 }
 ```
 
-`ToolPlan` is `Intent(IntentSpec)`, `Screen(goal)`, or `Reply(text)`. Kotlin maps
+`ToolPlan` is `Intent { spec, say, follow_up }` or `Screen { goal, say }`; every
+tool has a `say` field (a short confirmation the model writes in the user's
+language, D-25). A plain-text reply from the router is spoken as an answer. Kotlin maps
 each `IntentSpec` variant in `IntentExecutor`. Initial tools: `play_music`,
 `navigate`, `set_alarm`, `set_timer`, `dial`, `send_message`, `open_app`,
 `web_search`, `screen_task`. Preferred music/maps/messaging apps are settings.
@@ -224,7 +226,7 @@ Before every `perform`, `safety::check(action, node, snapshot, settings)` return
   the screen task's current package set when the package is blocklisted.
 - **Confirm:** target text/content-desc/resource-id matches a sensitive keyword
   (send, pay, place order, buy, delete, transfer, confirm, uninstall, … in a
-  multilingual data file `safety/keywords.toml` contributors extend); target app
+  multilingual data file `safety/keywords.json` contributors extend); target app
   is a payment/banking package; system security settings screens; `dial` and
   `send_message` intents always; "confirm everything" setting.
 - Action cap, STOP and the "agent is acting" pill are enforced regardless of what
