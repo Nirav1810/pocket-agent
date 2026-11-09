@@ -1,0 +1,4 @@
+# UniFFI binding configuration (read by `cargo xtask android-build`).
+[bindings.kotlin]
+package_name = "io.github.pocketagent.core"
+cdylib_name = "pocket_agent_core"

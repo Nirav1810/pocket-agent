@@ -171,3 +171,18 @@ relay mode, on top of the relay's caps. It is soft (the crossing request
 completes) and an estimate; the Anthropic Console spend limit is the hard
 backstop. The price table and UTC date helpers moved to `protocol` so the relay
 and the phone compute costs identically.
+
+## D-33 Android TLS roots: Mozilla bundle, not the platform verifier
+On Android the Kotlin half of `rustls-platform-verifier` is distributed from a
+raw-GitHub Maven archive (not Maven Central) and needs JNI glue with `unsafe`.
+F-Droid builds from source and does not accept such repositories. Android
+builds therefore use rustls with `webpki-roots` (Mozilla's CA bundle, compiled
+in); desktop keeps the platform verifier. Both hosts we contact use public CAs.
+Trade-off: user-installed CAs are ignored on Android (acceptable, arguably
+safer) and root updates ship with app updates.
+
+## D-34 Android toolchain versions
+compileSdk/targetSdk 37 (Android 17), minSdk 29, build-tools 37.0.0, NDK r30
+(30.0.16248370), Gradle 9.8.2, Android Gradle Plugin 9.4.1, Kotlin 2.4.21.
+agent-core is not stripped at link time (UniFFI reads metadata symbols from the
+library); the Android Gradle plugin strips it when packaging the APK.

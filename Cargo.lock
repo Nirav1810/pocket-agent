@@ -2428,6 +2428,7 @@ name = "xtask"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "camino",
  "clap",
  "getrandom 0.4.3",
  "pocket-agent-protocol",
@@ -2436,6 +2437,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tiny_http",
+ "uniffi",
  "ureq",
  "zeroize",
 ]

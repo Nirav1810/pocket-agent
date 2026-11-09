@@ -6,6 +6,7 @@
 //! Secrets typed into these commands (API key, pairing code) are piped
 //! straight to `wrangler secret put` and never written to disk.
 
+mod android;
 mod check;
 mod it;
 mod qr;
@@ -60,6 +61,16 @@ enum Cmd {
         #[arg(long)]
         url: String,
     },
+    /// Cross-compile agent-core for Android and generate Kotlin bindings
+    /// (Gradle runs this automatically).
+    AndroidBuild {
+        /// Optimised build (default: debug).
+        #[arg(long)]
+        release: bool,
+        /// ABIs to build (comma-separated). Releases ship arm64-v8a.
+        #[arg(long, value_delimiter = ',', default_value = "arm64-v8a")]
+        abi: Vec<String>,
+    },
     /// Local integration test: runs the relay under `wrangler dev` against a
     /// mock Anthropic upstream and exercises every route. No account needed.
     RelayIt,
@@ -79,5 +90,6 @@ fn main() -> Result<()> {
             check::relay_check(&url, &code)
         }
         Cmd::RelayIt => it::run(),
+        Cmd::AndroidBuild { release, abi } => android::build(release, &abi),
     }
 }

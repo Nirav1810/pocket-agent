@@ -275,3 +275,21 @@ pub fn pair_relay(
         relay_version: r.relay.version,
     })
 }
+
+/// Check credentials without spending anything (onboarding "Test connection").
+/// Direct: lists models with the key. Relay: health check, then an
+/// authenticated `/v1/usage` call with the device token.
+#[uniffi::export]
+pub fn verify_credentials(credentials: crate::types::Credentials) -> Result<(), AgentError> {
+    if let crate::types::Credentials::Relay { base_url, .. } = &credentials {
+        let info = check_relay(base_url.clone())?;
+        if !info.compatible {
+            return Err(AgentError::IncompatibleRelay {
+                relay: info.protocol,
+                app: PROTOCOL_VERSION,
+            });
+        }
+    }
+    let client = ApiClient::from_credentials(credentials)?;
+    client.verify().map_err(AgentError::from)
+}

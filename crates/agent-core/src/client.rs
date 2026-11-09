@@ -146,6 +146,16 @@ impl std::fmt::Debug for ApiClient {
 
 static CRYPTO_INIT: Once = Once::new();
 
+/// Trust roots: the OS store on desktop, Mozilla's bundled roots on Android
+/// (DECISIONS D-33).
+fn root_certs() -> RootCerts {
+    if cfg!(target_os = "android") {
+        RootCerts::WebPki
+    } else {
+        RootCerts::PlatformVerifier
+    }
+}
+
 fn http_agent(timeout: Duration) -> ureq::Agent {
     CRYPTO_INIT.call_once(|| {
         // Ignore the error if another component already installed a provider.
@@ -155,7 +165,7 @@ fn http_agent(timeout: Duration) -> ureq::Agent {
         .tls_config(
             TlsConfig::builder()
                 .provider(TlsProvider::Rustls)
-                .root_certs(RootCerts::PlatformVerifier)
+                .root_certs(root_certs())
                 .build(),
         )
         // Never follow redirects: the configured host is the only host we talk to.
@@ -400,6 +410,53 @@ fn sleep_unless_stopped(total: Duration, is_stopped: &dyn Fn() -> bool) -> Resul
         left -= s;
     }
     Ok(())
+}
+
+impl ApiClient {
+    /// Check that the credentials work without spending anything:
+    /// direct mode lists models (`GET /v1/models`), relay mode reads the
+    /// device's usage (`GET /v1/usage`, authenticated).
+    pub fn verify(&self) -> Result<(), ApiError> {
+        let path = if self.via_relay() {
+            "/v1/usage"
+        } else {
+            "/v1/models?limit=1"
+        };
+        let mut req = ureq::http::Request::builder()
+            .method("GET")
+            .uri(format!("{}{path}", self.base))
+            .header("anthropic-version", ANTHROPIC_VERSION);
+        req = match &self.auth {
+            Auth::Bearer(t) => req.header("authorization", format!("Bearer {}", t.expose_secret())),
+            Auth::ApiKey(k) => req.header("x-api-key", k.expose_secret()),
+        };
+        let req = req
+            .body(())
+            .map_err(|e| ApiError::InvalidConfig(e.to_string()))?;
+        let mut resp = self.http.run(req).map_err(map_transport)?;
+        let status = resp.status().as_u16();
+        if status == 200 {
+            return Ok(());
+        }
+        let relay_err = resp
+            .headers()
+            .get(RELAY_ERROR_HEADER)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned);
+        let bytes = resp
+            .body_mut()
+            .with_config()
+            .limit(64 * 1024)
+            .read_to_vec()
+            .map_err(map_transport)?;
+        Err(classify_error(
+            status,
+            &bytes,
+            relay_err.as_deref(),
+            None,
+            self.via_relay(),
+        ))
+    }
 }
 
 // ------------------------------------------------------------- relay admin --
@@ -662,6 +719,57 @@ mod tests {
         assert_eq!(backoff(0, Some(120.0)), None);
         let d = backoff(1, None).unwrap();
         assert!(d >= Duration::from_millis(1000) && d < Duration::from_millis(1600));
+    }
+
+    #[tokio::test]
+    async fn verify_uses_free_endpoints() {
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v1/usage"))
+            .and(header("authorization", "Bearer pa_dt_ok"))
+            .respond_with(ResponseTemplate::new(200).set_body_string("{}"))
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/v1/usage"))
+            .and(header("authorization", "Bearer pa_dt_revoked"))
+            .respond_with(
+                ResponseTemplate::new(401)
+                    .insert_header(RELAY_ERROR_HEADER, "authentication_error"),
+            )
+            .mount(&server)
+            .await;
+        Mock::given(method("GET"))
+            .and(path("/v1/models"))
+            .and(header("x-api-key", "sk-ant-good"))
+            .respond_with(ResponseTemplate::new(200).set_body_string(r#"{"data":[]}"#))
+            .mount(&server)
+            .await;
+        let base = server.uri();
+        let (ok, revoked, direct) = blocking(move || {
+            let relay = |t: &str| {
+                ApiClient::from_credentials(Credentials::Relay {
+                    base_url: base.clone(),
+                    device_token: t.into(),
+                })
+                .unwrap()
+                .verify()
+            };
+            (
+                relay("pa_dt_ok"),
+                relay("pa_dt_revoked"),
+                ApiClient::direct_for_tests(&base, "sk-ant-good").verify(),
+            )
+        })
+        .await;
+        assert_eq!(ok, Ok(()));
+        assert_eq!(revoked, Err(ApiError::DeviceUnauthorized));
+        assert_eq!(direct, Ok(()));
+        let reqs = server.received_requests().await.unwrap();
+        assert!(
+            reqs.iter().all(|r| r.method.as_str() == "GET"),
+            "verification must never POST /v1/messages"
+        );
     }
 
     #[test]

@@ -42,3 +42,9 @@ strip = true
 # (which strips) afterwards.
 [profile.release.package.pocket-agent-relay]
 strip = false
+
+# UniFFI generates bindings from metadata symbols in the compiled library, so
+# agent-core is not stripped at link time. The Android Gradle plugin strips
+# native libraries when packaging the APK.
+[profile.release.package.pocket-agent-core]
+strip = false
