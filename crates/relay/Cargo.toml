@@ -1,0 +1,32 @@
+[package]
+name = "pocket-agent-relay"
+description = "Self-hosted Cloudflare Worker that forwards Pocket Agent requests to the Claude API."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+pocket-agent-protocol.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+sha2.workspace = true
+subtle.workspace = true
+base64.workspace = true
+hex.workspace = true
+
+# Worker runtime glue only exists on wasm32; everything else is plain Rust
+# that `cargo test` exercises natively.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+worker = { version = "0.8.7", features = ["d1"] }
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
+js-sys = "0.3"
+
+[lints]
+workspace = true

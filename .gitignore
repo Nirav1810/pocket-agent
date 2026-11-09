@@ -1,0 +1,37 @@
+# Rust
+/target/
+**/target/
+
+# Cloudflare / wrangler (local state and secrets)
+.dev.vars
+.dev.vars.*
+.wrangler/
+**/.wrangler/
+crates/relay/wrangler.toml
+crates/relay/build/
+node_modules/
+
+# Android
+android/local.properties
+android/.gradle/
+android/**/build/
+android/.idea/
+*.iml
+*.keystore
+*.jks
+keystore.properties
+android/app/src/main/jniLibs/
+android/app/src/main/java/uniffi/
+
+# Secrets that must never be committed
+*.pem
+*.p12
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+crates/relay/wrangler.*.toml

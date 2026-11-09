@@ -1,0 +1,22 @@
+# gitleaks config: default rules plus Pocket Agent specific ones.
+# Run locally: gitleaks git --config .gitleaks.toml
+title = "pocket-agent"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "pocket-agent-device-token"
+description = "Pocket Agent relay device token"
+regex = '''pa_dt_[A-Za-z0-9_-]{43}'''
+tags = ["token", "pocket-agent"]
+
+[[rules]]
+id = "anthropic-api-key"
+description = "Anthropic API key"
+regex = '''sk-ant-[a-z0-9]{2,8}-[A-Za-z0-9_-]{60,}'''
+tags = ["key", "anthropic"]
+
+[allowlist]
+description = "Obvious test fixtures"
+regexes = ['''it-upstream-key-not-a-real-key''', '''IT000-[A-Z0-9-]+''']

@@ -1,0 +1,25 @@
+[package]
+name = "xtask"
+description = "Developer and self-hosting tasks for Pocket Agent: `cargo xtask <command>`."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+publish = false
+
+[dependencies]
+pocket-agent-protocol.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive"] }
+getrandom = "0.4.3"
+qrcode = { version = "0.14.1", default-features = false }
+rpassword = "7.5.4"
+tiny_http = "0.12.0"
+ureq = { version = "3.5.1", default-features = false, features = ["rustls", "json"] }
+zeroize = "1.9.1"
+
+[lints]
+workspace = true

@@ -1,0 +1,55 @@
+# Deploy YOUR relay from YOUR fork.
+#
+# One-time setup in your fork (Settings → Secrets and variables → Actions):
+#   Secrets:
+#     CLOUDFLARE_API_TOKEN   token with "Edit Cloudflare Workers" + "D1 Edit" permissions
+#     CLOUDFLARE_ACCOUNT_ID  your account id (dashboard sidebar)
+#   Variables:
+#     RELAY_NAME             e.g. pocket-agent-relay
+#     D1_DATABASE_ID         from `wrangler d1 create <RELAY_NAME>-db` (or relay-setup)
+#
+# The API key and pairing code are NOT handled here. Set them once with
+#   npx wrangler secret put ANTHROPIC_API_KEY
+#   cargo xtask relay-rotate-code
+# They survive redeploys.
+name: Deploy relay
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Render wrangler.toml
+        working-directory: crates/relay
+        env:
+          RELAY_NAME: ${{ vars.RELAY_NAME }}
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+        run: |
+          test -n "$RELAY_NAME" && test -n "$D1_DATABASE_ID" || { echo "Set RELAY_NAME and D1_DATABASE_ID repo variables"; exit 1; }
+          sed -e "s/__WORKER_NAME__/$RELAY_NAME/" \
+              -e "s/__DATABASE_NAME__/$RELAY_NAME-db/" \
+              -e "s/__DATABASE_ID__/$D1_DATABASE_ID/" wrangler.toml.example > wrangler.toml
+      - name: Apply migrations and deploy
+        working-directory: crates/relay
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+          CI: "true"
+        run: |
+          npx --yes wrangler@4.152.0 d1 migrations apply DB --remote
+          npx --yes wrangler@4.152.0 deploy

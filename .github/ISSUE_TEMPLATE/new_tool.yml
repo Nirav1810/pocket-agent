@@ -1,0 +1,27 @@
+name: New tool request
+description: Ask for a new intent tool (e.g. "add to calendar", "turn on flashlight")
+labels: [tool-request]
+body:
+  - type: input
+    id: example
+    attributes:
+      label: Example spoken command
+      placeholder: '"Add dentist appointment tomorrow at 4 pm"'
+    validations:
+      required: true
+  - type: textarea
+    id: intent
+    attributes:
+      label: Android intent / API that could do it (if known)
+      description: Action, extras, URI scheme, or apps that support it. See docs/ADDING_TOOLS.md.
+  - type: dropdown
+    id: sensitive
+    attributes:
+      label: Does it send, buy, delete, call, or change security settings?
+      options: ["No", "Yes (needs confirmation)", "Not sure"]
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd like to implement it myself
