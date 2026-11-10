@@ -1,13 +1,17 @@
 # Pocket Agent
 
+[![CI](https://github.com/Nirav1810/pocket-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Nirav1810/pocket-agent/actions/workflows/ci.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+
 An open-source AI phone agent for Android. Hold the power button, say what you
 want, and it gets done: by firing the right Android intent when one exists, or
 by operating the screen itself when it doesn't. Powered by Claude, with **your
 own** API key.
 
 > **Status: early development (v0.1.0 in progress).** The relay (Milestone 1)
-> and the on-device agent core (Milestone 2) are done; the Android app is next. See the
-> [roadmap](#roadmap).
+> and the on-device agent core (Milestone 2) are done. The Android build
+> pipeline (`cargo xtask android-build`: cargo-ndk + UniFFI Kotlin bindings) is
+> in place; the Android app itself is next. See the [roadmap](#roadmap).
 
 <!-- Demo GIF goes here once the app runs end to end. -->
 
@@ -50,8 +54,8 @@ It answers briefly by voice, in your language.
      Cloudflare; the phone holds only a revocable token.
    - **Direct (quickest):** paste your key into the app; it is encrypted with the
      Android Keystore.
-3. Install the APK from GitHub Releases, run the setup wizard, and set Pocket
-   Agent as your default assistant.
+3. Install the APK from GitHub Releases (none yet; the first one ships with
+   v0.1.0), run the setup wizard, and set Pocket Agent as your default assistant.
 
 Full guide: [docs/SETUP.md](docs/SETUP.md).
 
@@ -70,8 +74,8 @@ in [PERF.md](docs/PERF.md).
 ## Supported devices
 
 Android 10 (API 29) and newer, arm64. Some manufacturers (Xiaomi, Oppo, Vivo,
-Samsung, …) kill background services aggressively; the wizard links to fixes in
-[DEVICE_QUIRKS.md](docs/DEVICE_QUIRKS.md).
+Samsung, …) kill background services aggressively; the wizard will link to
+per-vendor fixes (a `DEVICE_QUIRKS.md` guide is planned).
 
 Distributed via GitHub Releases (F-Droid metadata included). Not on Google Play,
 whose AccessibilityService policy doesn't allow this kind of app.
@@ -88,6 +92,23 @@ docs               architecture, decisions, setup, security, privacy, perf
 ```
 
 See [ARCHITECTURE.md](docs/ARCHITECTURE.md) and [DECISIONS.md](docs/DECISIONS.md).
+
+## Build from source
+
+```sh
+rustup toolchain install stable
+rustup target add wasm32-unknown-unknown
+
+cargo test --workspace                             # all crates
+cp .env.example .env                               # add your API key, then:
+cargo run -p pocket-agent-core --example repl      # try the agent on desktop
+
+cargo xtask relay-setup                            # deploy your own relay (needs Node.js 20+)
+cargo xtask android-build                          # .so + Kotlin bindings (needs Android NDK r27+ and cargo-ndk)
+```
+
+`cargo xtask --help` lists every command. Full dev setup and the checks CI runs
+are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## FAQ
 
@@ -107,7 +128,7 @@ wakelock or polling. Idle, only the accessibility service is bound, doing nothin
 
 1. ✅ Repo and self-hosted relay (pairing, auth, passthrough, usage ledger, caps)
 2. ✅ agent-core: Claude client, tools, router, safety policy, desktop REPL
-3. ☐ Android shell: onboarding, intents, speech, Quick Settings tile
+3. ◐ Android shell (build pipeline done): onboarding, intents, speech, Quick Settings tile
 4. ☐ Default assistant (power-button long-press)
 5. ☐ Screen agent (accessibility, confirmations, STOP)
 6. ☐ Hardening (retries, offline, refusals, localisation)
